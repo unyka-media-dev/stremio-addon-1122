@@ -81,7 +81,7 @@ const LOGOS = {
 "Tierra Mia":"https://extracity.click/img/tierramia.jpg",
 "Music Top":"https://extracity.click/img/musictop.jpeg",
 "Pop World":"https://extracity.click/img/popw.jpeg",
-"BTA"."https://extracity.click/img/bta.png",
+"BTA":"https://extracity.click/img/bta.png",
 "Dance Main Stage":"https://extracity.click/img/dancetv.jpeg",
 "Quantica":"https://extracity.click/img/quantica.png",
 "V classic":"https://extracity.click/img/vclassic.png",
@@ -223,3 +223,4 @@ const port = process.env.PORT || 7000;
 serveHTTP(builder.getInterface(), { port: port });
 
 console.log(`Addon activo en el puerto ${port}`);
+
