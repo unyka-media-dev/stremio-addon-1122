@@ -1,8 +1,8 @@
 const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
 const axios = require("axios");
 
-// --- CONFIGURACIÓN DE LOGOS ---
-// Agrega aquí el nombre del canal (como está en tu PHP) y su imagen.
+// --- 1. CONFIGURACIÓN DE LOGOS ---
+// Asegúrate de que los nombres coincidan exactamente con tu canales.php
 const LOGOS = {
     "Net": "https://extracity.click/img/Nettv.png",
     "Telefe Noticias": "https://extracity.click/img/telefenoticias.jpg",
@@ -123,16 +123,14 @@ const LOGOS = {
 "Canal Malaga":"https://extracity.click/img/malaga.jpeg",
 " Tv Pública / Balcarce 2":"https://extracity.click/img/tv2.jpeg",
 "BA 360":"https://unktv.digital/img/ba360.png",
-"GENERAL": "https://1122.click/img/1122click.png" // Tu logo por defecto
-
+"GENERAL": "https://1122.click/img/1122click.png"
 };
-
-// --- 1. CONFIGURACIÓN DEL ADDON ---
+// --- 2. DEFINICIÓN DEL MANIFIESTO ---
 const builder = new addonBuilder({
     id: "com.1122click.addon",
     version: "1.0.0",
     name: "1122 Click TV",
-    description: "Canales de 1122.click en Stremio",
+    description: "Canales en vivo de 1122.click",
     resources: ["catalog", "meta", "stream"],
     types: ["tv"],
     catalogs: [
@@ -145,7 +143,7 @@ const builder = new addonBuilder({
     idPrefixes: ["1122_"]
 });
 
-// --- 2. LECTURA DE TU LISTA ---
+// --- 3. FUNCIÓN PARA OBTENER LOS CANALES ---
 async function fetchChannels() {
     try {
         const response = await axios.get("https://1122.click/play/canales.php");
@@ -153,7 +151,9 @@ async function fetchChannels() {
         return lines
             .filter(line => line.includes(","))
             .map((line, index) => {
-                const [name, url] = line.split(",").map(s => s.trim());
+                const parts = line.split(",");
+                const name = parts[0].trim();
+                const url = parts[1].trim();
                 return { 
                     id: `1122_${index}`, 
                     name, 
@@ -161,10 +161,14 @@ async function fetchChannels() {
                     logo: LOGOS[name] || LOGOS["GENERAL"]
                 };
             });
-    } catch (e) { return []; }
+    } catch (e) {
+        console.error("Error al obtener canales:", e);
+        return [];
+    }
 }
 
-// --- 3. FUNCIONES DEL SISTEMA ---
+// --- 4. CONFIGURACIÓN DE LOS MANEJADORES (HANDLERS) ---
+
 builder.defineCatalogHandler(async () => {
     const channels = await fetchChannels();
     return {
@@ -196,16 +200,26 @@ builder.defineMetaHandler(async (args) => {
 builder.defineStreamHandler(async (args) => {
     const channels = await fetchChannels();
     const ch = channels.find(c => c.id === args.id);
+    
     if (!ch) return { streams: [] };
 
+    // Soporte para YouTube
     if (ch.url.includes("youtube.com") || ch.url.includes("youtu.be")) {
         const ytId = ch.url.split("v=")[1] || ch.url.split("/").pop();
         return { streams: [{ ytId }] };
     }
-    return { streams: [{ title: "Reproducir", url: ch.url }] };
+
+    // Soporte para links directos (m3u8, mp4, etc)
+    return { 
+        streams: [
+            { title: "Reproducir en Vivo", url: ch.url }
+        ] 
+    };
 });
 
-// --- 4. ARRANCAR ---
-serveHTTP(builder.getInterface(), { port: 7000 });
-console.log("¡Addon encendido!");
-console.log("Dirección: http://localhost:7000/manifest.json");
+// --- 5. ARRANCAR EL SERVIDOR ---
+// Esta línea es clave para que Render funcione correctamente
+const port = process.env.PORT || 7000;
+serveHTTP(builder.getInterface(), { port: port });
+
+console.log(`Addon activo en el puerto ${port}`);
